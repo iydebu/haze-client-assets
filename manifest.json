@@ -1,45 +1,263 @@
 {
-  "version": 1,
-  "updated": "2026-02-09T00:00:00Z",
+  "version": 2,
+  "updated": "2026-02-10T00:00:00Z",
   "assets": [
     {
-      "id": "haze-skin-ar",
+      "id": "skin-ar-army",
       "type": "skin",
       "weapon": "ar",
-      "name": "Haze Original AR",
-      "description": "The original Haze AR skin",
-      "file": "skins/ar/ht1.webp",
-      "size": 204866,
+      "name": "Army AR",
+      "description": "Military-style AR skin",
+      "file": "AR/Army.png",
+      "size": 7845043,
       "required": false
     },
     {
-      "id": "haze-skin-awp",
+      "id": "skin-ar-hotwheels",
+      "type": "skin",
+      "weapon": "ar",
+      "name": "HotWheels AR",
+      "description": "HotWheels-themed AR skin",
+      "file": "AR/HotWheels.png",
+      "size": 8724277,
+      "required": false
+    },
+    {
+      "id": "skin-ar-ion",
+      "type": "skin",
+      "weapon": "ar",
+      "name": "Ion AR",
+      "description": "Ion energy AR skin",
+      "file": "AR/Ion.png",
+      "size": 6891844,
+      "required": false
+    },
+    {
+      "id": "skin-ar-ironman",
+      "type": "skin",
+      "weapon": "ar",
+      "name": "Ironman AR",
+      "description": "Ironman-themed AR skin",
+      "file": "AR/Ironman.png",
+      "size": 8207719,
+      "required": false
+    },
+    {
+      "id": "skin-ar-scifi",
+      "type": "skin",
+      "weapon": "ar",
+      "name": "Scifi AR",
+      "description": "Sci-fi futuristic AR skin",
+      "file": "AR/Scifi.png",
+      "size": 7295020,
+      "required": false
+    },
+    {
+      "id": "skin-ar-spiderman",
+      "type": "skin",
+      "weapon": "ar",
+      "name": "SpiderMan AR",
+      "description": "Spider-Man themed AR skin",
+      "file": "AR/SpiderMan.png",
+      "size": 8474142,
+      "required": false
+    },
+    {
+      "id": "skin-ar-vought",
+      "type": "skin",
+      "weapon": "ar",
+      "name": "Vought AR",
+      "description": "Vought International AR skin",
+      "file": "AR/Vought.png",
+      "size": 6814792,
+      "required": false
+    },
+    {
+      "id": "skin-awp-army",
       "type": "skin",
       "weapon": "awp",
-      "name": "Haze Original AWP",
-      "description": "The original Haze AWP skin",
-      "file": "skins/awp/ht1.webp",
-      "size": 377634,
+      "name": "Army AWP",
+      "description": "Military-style AWP skin",
+      "file": "AWP/Army.png",
+      "size": 6352861,
       "required": false
     },
     {
-      "id": "haze-skin-smg",
+      "id": "skin-awp-bmw",
       "type": "skin",
-      "weapon": "smg",
-      "name": "Haze Original SMG",
-      "description": "The original Haze SMG skin",
-      "file": "skins/smg/ht1.webp",
-      "size": 180732,
+      "weapon": "awp",
+      "name": "BMW AWP",
+      "description": "BMW-themed AWP skin",
+      "file": "AWP/BMW.png",
+      "size": 6437964,
       "required": false
     },
     {
-      "id": "haze-skin-shotgun",
+      "id": "skin-awp-boys",
+      "type": "skin",
+      "weapon": "awp",
+      "name": "Boys AWP",
+      "description": "Boys-themed AWP skin",
+      "file": "AWP/Boys.png",
+      "size": 7320788,
+      "required": false
+    },
+    {
+      "id": "skin-awp-ironman",
+      "type": "skin",
+      "weapon": "awp",
+      "name": "Ironman AWP",
+      "description": "Ironman-themed AWP skin",
+      "file": "AWP/Ironman.png",
+      "size": 6473823,
+      "required": false
+    },
+    {
+      "id": "skin-awp-rever",
+      "type": "skin",
+      "weapon": "awp",
+      "name": "Rever AWP",
+      "description": "Rever-style AWP skin",
+      "file": "AWP/Rever.png",
+      "size": 1766572,
+      "required": false
+    },
+    {
+      "id": "skin-awp-scifi",
+      "type": "skin",
+      "weapon": "awp",
+      "name": "Scifi AWP",
+      "description": "Sci-fi futuristic AWP skin",
+      "file": "AWP/Scifi.jpg",
+      "size": 200131,
+      "required": false
+    },
+    {
+      "id": "skin-shotgun-boys",
       "type": "skin",
       "weapon": "shotgun",
-      "name": "Haze Original Shotgun",
-      "description": "The original Haze Shotgun skin",
-      "file": "skins/shotgun/ht1.webp",
-      "size": 60744,
+      "name": "Boys Shotgun",
+      "description": "Boys-themed Shotgun skin",
+      "file": "Shotgun/Boys.png",
+      "size": 7013421,
+      "required": false
+    },
+    {
+      "id": "skin-shotgun-circuit",
+      "type": "skin",
+      "weapon": "shotgun",
+      "name": "Circuit Shotgun",
+      "description": "Circuit board Shotgun skin",
+      "file": "Shotgun/Circuit.png",
+      "size": 7364173,
+      "required": false
+    },
+    {
+      "id": "skin-shotgun-cyber",
+      "type": "skin",
+      "weapon": "shotgun",
+      "name": "Cyber Shotgun",
+      "description": "Cyberpunk-style Shotgun skin",
+      "file": "Shotgun/Cyber.png",
+      "size": 6640157,
+      "required": false
+    },
+    {
+      "id": "skin-shotgun-ion",
+      "type": "skin",
+      "weapon": "shotgun",
+      "name": "Ion Shotgun",
+      "description": "Ion energy Shotgun skin",
+      "file": "Shotgun/Ion.png",
+      "size": 7202389,
+      "required": false
+    },
+    {
+      "id": "skin-shotgun-ironman",
+      "type": "skin",
+      "weapon": "shotgun",
+      "name": "Ironman Shotgun",
+      "description": "Ironman-themed Shotgun skin",
+      "file": "Shotgun/Ironman.png",
+      "size": 7373761,
+      "required": false
+    },
+    {
+      "id": "skin-shotgun-scifi",
+      "type": "skin",
+      "weapon": "shotgun",
+      "name": "Scifi Shotgun",
+      "description": "Sci-fi futuristic Shotgun skin",
+      "file": "Shotgun/Scifi.png",
+      "size": 6536561,
+      "required": false
+    },
+    {
+      "id": "skin-smg-boys",
+      "type": "skin",
+      "weapon": "smg",
+      "name": "Boys SMG",
+      "description": "Boys-themed SMG skin",
+      "file": "SMG/Boys.png",
+      "size": 7829135,
+      "required": false
+    },
+    {
+      "id": "skin-smg-camo",
+      "type": "skin",
+      "weapon": "smg",
+      "name": "Camo SMG",
+      "description": "Camouflage SMG skin",
+      "file": "SMG/Camo.png",
+      "size": 8464166,
+      "required": false
+    },
+    {
+      "id": "skin-smg-hotwheel",
+      "type": "skin",
+      "weapon": "smg",
+      "name": "Hotwheel SMG",
+      "description": "Hot Wheels-themed SMG skin",
+      "file": "SMG/Hotwheel.png",
+      "size": 8681924,
+      "required": false
+    },
+    {
+      "id": "skin-smg-ion",
+      "type": "skin",
+      "weapon": "smg",
+      "name": "Ion SMG",
+      "description": "Ion energy SMG skin",
+      "file": "SMG/Ion.png",
+      "size": 7863037,
+      "required": false
+    },
+    {
+      "id": "skin-smg-ironman",
+      "type": "skin",
+      "weapon": "smg",
+      "name": "Ironman SMG",
+      "description": "Ironman-themed SMG skin",
+      "file": "SMG/Ironman.png",
+      "size": 8344312,
+      "required": false
+    },
+    {
+      "id": "special-dragon",
+      "type": "special",
+      "name": "Dragon",
+      "description": "Dragon special skin for all weapons",
+      "file": "Special/Dragon.jpg",
+      "size": 1504424,
+      "required": false
+    },
+    {
+      "id": "special-iydebu",
+      "type": "special",
+      "name": "Iydebu",
+      "description": "Iydebu signature special skin for all weapons",
+      "file": "Special/Iydebu.png",
+      "size": 10206811,
       "required": false
     }
   ]
