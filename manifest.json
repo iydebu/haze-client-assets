@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "updated": "2026-02-09T00:00:00Z",
+  "assets": [
+    {
+      "id": "haze-skin-ar",
+      "type": "skin",
+      "weapon": "ar",
+      "name": "Haze Original AR",
+      "description": "The original Haze AR skin",
+      "file": "skins/ar/ht1.webp",
+      "size": 204866,
+      "required": false
+    },
+    {
+      "id": "haze-skin-awp",
+      "type": "skin",
+      "weapon": "awp",
+      "name": "Haze Original AWP",
+      "description": "The original Haze AWP skin",
+      "file": "skins/awp/ht1.webp",
+      "size": 377634,
+      "required": false
+    },
+    {
+      "id": "haze-skin-smg",
+      "type": "skin",
+      "weapon": "smg",
+      "name": "Haze Original SMG",
+      "description": "The original Haze SMG skin",
+      "file": "skins/smg/ht1.webp",
+      "size": 180732,
+      "required": false
+    },
+    {
+      "id": "haze-skin-shotgun",
+      "type": "skin",
+      "weapon": "shotgun",
+      "name": "Haze Original Shotgun",
+      "description": "The original Haze Shotgun skin",
+      "file": "skins/shotgun/ht1.webp",
+      "size": 60744,
+      "required": false
+    }
+  ]
+}
