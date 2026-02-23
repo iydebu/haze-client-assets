@@ -286,6 +286,19 @@ h1{color:#00ff88;margin-bottom:6px;font-size:24px}
 .upload-btn{background:linear-gradient(145deg,#1a2240,#12182b);border:1px solid rgba(0,255,136,0.2);color:#00ff88;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;transition:all 0.2s}
 .upload-btn:hover{background:linear-gradient(145deg,#1e2850,#161d30);border-color:#00ff88}
 .upload-btn:disabled{opacity:0.4;cursor:not-allowed}
+.viewer-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:1000;display:none;align-items:center;justify-content:center}
+.viewer-modal.visible{display:flex}
+.viewer-content{background:#0a0e1a;border:1px solid rgba(255,255,255,0.1);border-radius:12px;max-width:90vw;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;min-width:500px}
+.viewer-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.viewer-header span{color:#fff;font-size:14px;font-weight:600}
+.viewer-close{background:none;border:none;color:rgba(255,255,255,0.5);font-size:24px;cursor:pointer;padding:0 4px;line-height:1}
+.viewer-close:hover{color:#ff6b8a}
+#viewerCanvas{display:block;width:100%;background:#080b14}
+.viewer-footer{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08)}
+.viewer-info{color:rgba(255,255,255,0.4);font-size:12px}
+.view3d-link{color:#00ff88;font-size:12px;cursor:pointer;margin-top:6px;display:none;text-decoration:underline}
+.view3d-link:hover{color:#33ffaa}
+.gen-progress{color:rgba(255,255,255,0.5);font-size:12px;margin-left:8px}
 </style>
 </head>
 <body>
@@ -304,6 +317,7 @@ h1{color:#00ff88;margin-bottom:6px;font-size:24px}
   <button onclick="regenerateManifest()">Save Manifest</button>
   <button onclick="gitPush()" class="danger">Push to Git</button>
   <button onclick="loadAssets()">Refresh</button>
+  <button onclick="generateAllPreviews()">Generate All Previews</button>
 </div>
 
 <div class="upload-section" id="uploadSection">
@@ -332,6 +346,7 @@ h1{color:#00ff88;margin-bottom:6px;font-size:24px}
       <canvas id="skinCanvas" width="400" height="300"></canvas>
       <div class="loading-overlay" id="skinLoading">Rendering 3D preview...</div>
     </div>
+    <div class="view3d-link" id="skinView3d" onclick="viewUploadedSkin3D()">View in 3D &rarr;</div>
   </div>
 
   <!-- Model Tab -->
@@ -354,6 +369,7 @@ h1{color:#00ff88;margin-bottom:6px;font-size:24px}
       <canvas id="modelCanvas" width="400" height="300"></canvas>
       <div class="loading-overlay" id="modelLoading">Rendering 3D preview...</div>
     </div>
+    <div class="view3d-link" id="modelView3d" onclick="viewUploadedModel3D()">View in 3D &rarr;</div>
   </div>
 
   <!-- Special Tab -->
@@ -377,9 +393,24 @@ h1{color:#00ff88;margin-bottom:6px;font-size:24px}
 <div class="filters" id="filters"></div>
 <div class="grid" id="grid"></div>
 
+<div id="viewerModal" class="viewer-modal">
+  <div class="viewer-content">
+    <div class="viewer-header">
+      <span id="viewerTitle">3D Viewer</span>
+      <button class="viewer-close" onclick="closeViewer()">&times;</button>
+    </div>
+    <canvas id="viewerCanvas" width="800" height="600"></canvas>
+    <div class="viewer-footer">
+      <span id="viewerInfo" class="viewer-info">Drag to rotate &middot; Scroll to zoom</span>
+      <button class="upload-btn" id="genPreviewBtn" onclick="generatePreview()">Generate Preview</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // ─── WebGL Detection ──────────────────────────────────────────────────────────
 var hasWebGL = false;
@@ -388,6 +419,22 @@ try {
   hasWebGL = !!(tc.getContext('webgl2') || tc.getContext('webgl'));
 } catch(e) {}
 if (!hasWebGL) document.getElementById('webglWarning').style.display = 'block';
+
+// ─── Gradient Background Helper ──────────────────────────────────────────────
+function createGradientBackground() {
+  var c = document.createElement('canvas');
+  c.width = 2; c.height = 256;
+  var ctx = c.getContext('2d');
+  var grad = ctx.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, '#1a2240');
+  grad.addColorStop(0.5, '#12182b');
+  grad.addColorStop(1, '#0a0e1a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 2, 256);
+  var tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
 
 // ─── PreviewRenderer ─────────────────────────────────────────────────────────
 class PreviewRenderer {
@@ -403,17 +450,20 @@ class PreviewRenderer {
 
   async render(glbSource, textureSource) {
     var scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x080b14);
+    scene.background = createGradientBackground();
     var camera = new THREE.PerspectiveCamera(45, 400 / 300, 0.1, 100);
 
-    // Lights: ambient 0.4, directional 0.8, fill 0.3
-    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-    var dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    // Lights: strong for dark background — ambient 1.0, key 1.5, fill 0.8, rim 0.5
+    scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+    var dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
     dirLight.position.set(5, 5, 5);
     scene.add(dirLight);
-    var fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    var fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
     fillLight.position.set(-3, 2, -3);
     scene.add(fillLight);
+    var rimLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    rimLight.position.set(0, 3, -5);
+    scene.add(rimLight);
 
     // Load GLB
     var loader = new GLTFLoader();
@@ -457,8 +507,8 @@ class PreviewRenderer {
     var size = box.getSize(new THREE.Vector3());
     var maxDim = Math.max(size.x, size.y, size.z);
     var fov = camera.fov * (Math.PI / 180);
-    var dist = maxDim / (2 * Math.tan(fov / 2)) * 1.5;
-    camera.position.set(center.x + dist * 0.3, center.y + dist * 0.2, center.z + dist);
+    var dist = maxDim / (2 * Math.tan(fov / 2)) * 1.1;
+    camera.position.set(center.x + dist, center.y + dist * 0.15, center.z + dist * 0.1);
     camera.lookAt(center);
 
     // Render
@@ -485,6 +535,187 @@ class PreviewRenderer {
   }
 }
 
+// ─── InteractiveViewer ──────────────────────────────────────────────────────
+class InteractiveViewer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: canvas, alpha: true, antialias: true, preserveDrawingBuffer: true
+    });
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    this.scene = new THREE.Scene();
+    this.scene.background = createGradientBackground();
+    this.camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
+
+    this.controls = new OrbitControls(this.camera, canvas);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.1;
+
+    // Lighting: strong for dark background — ambient 1.0, key 1.5, fill 0.8, rim 0.5
+    this.scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+    var dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    dirLight.position.set(5, 5, 5);
+    this.scene.add(dirLight);
+    var fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    fillLight.position.set(-3, 2, -3);
+    this.scene.add(fillLight);
+    var rimLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    rimLight.position.set(0, 3, -5);
+    this.scene.add(rimLight);
+
+    this.model = null;
+    this.animId = null;
+    this.modelCenter = new THREE.Vector3();
+    this.modelDist = 1;
+  }
+
+  async load(glbSource, textureSource) {
+    // Clear previous model
+    if (this.model) {
+      this.scene.remove(this.model);
+      this.model.traverse(function(child) {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+      });
+      this.model = null;
+    }
+
+    // Load GLB
+    var loader = new GLTFLoader();
+    var gltf;
+    if (glbSource instanceof ArrayBuffer) {
+      gltf = await new Promise(function(resolve, reject) {
+        loader.parse(glbSource, '', resolve, reject);
+      });
+    } else {
+      gltf = await loader.loadAsync(glbSource);
+    }
+    var model = gltf.scene;
+
+    // Apply texture if provided
+    if (textureSource) {
+      var texLoader = new THREE.TextureLoader();
+      var texture;
+      if (textureSource instanceof Blob || textureSource instanceof File) {
+        var blobUrl = URL.createObjectURL(textureSource);
+        texture = await texLoader.loadAsync(blobUrl);
+        URL.revokeObjectURL(blobUrl);
+      } else {
+        texture = await texLoader.loadAsync(textureSource);
+      }
+      texture.flipY = false;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      model.traverse(function(child) {
+        if (child.isMesh) {
+          child.material = new THREE.MeshStandardMaterial({ map: texture });
+        }
+      });
+    }
+
+    // Rotate model ~30 degrees on Y axis
+    model.rotation.y = Math.PI / 6;
+    this.scene.add(model);
+    this.model = model;
+
+    // Auto-fit camera to bounding box
+    var box = new THREE.Box3().setFromObject(model);
+    var center = box.getCenter(new THREE.Vector3());
+    var size = box.getSize(new THREE.Vector3());
+    var maxDim = Math.max(size.x, size.y, size.z);
+    var fov = this.camera.fov * (Math.PI / 180);
+    var dist = maxDim / (2 * Math.tan(fov / 2)) * 1.1;
+
+    this.modelCenter = center.clone();
+    this.modelDist = dist;
+
+    this.camera.position.set(center.x + dist, center.y + dist * 0.15, center.z + dist * 0.1);
+    this.camera.lookAt(center);
+    this.controls.target.copy(center);
+    this.controls.update();
+
+    // Start animation loop
+    this.startLoop();
+  }
+
+  startLoop() {
+    if (this.animId) return;
+    var self = this;
+    function animate() {
+      self.animId = requestAnimationFrame(animate);
+      self.controls.update();
+      self.renderer.render(self.scene, self.camera);
+    }
+    animate();
+  }
+
+  async capturePreview() {
+    // Create OFFSCREEN 400x300 canvas + separate renderer
+    var offCanvas = document.createElement('canvas');
+    offCanvas.width = 400;
+    offCanvas.height = 300;
+    var offRenderer = new THREE.WebGLRenderer({
+      canvas: offCanvas, alpha: true, antialias: true, preserveDrawingBuffer: true
+    });
+    offRenderer.setSize(400, 300);
+    offRenderer.setPixelRatio(1);
+    offRenderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    // Clone scene for offscreen render (reuse same scene, just different camera)
+    var offCamera = new THREE.PerspectiveCamera(45, 400 / 300, 0.1, 100);
+    // FIXED STANDARD ANGLE — ignoring current orbit position
+    var center = this.modelCenter;
+    var dist = this.modelDist;
+    offCamera.position.set(center.x + dist, center.y + dist * 0.15, center.z + dist * 0.1);
+    offCamera.lookAt(center);
+
+    // Render single frame
+    offRenderer.render(this.scene, offCamera);
+
+    // Export as WebP 400x300 @ 75%
+    var blob = await new Promise(function(resolve) {
+      offCanvas.toBlob(function(b) { resolve(b); }, 'image/webp', 0.75);
+    });
+
+    // Dispose offscreen renderer
+    offRenderer.dispose();
+    return blob;
+  }
+
+  resize(width, height) {
+    this.renderer.setSize(width, height);
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+  }
+
+  stop() {
+    if (this.animId) {
+      cancelAnimationFrame(this.animId);
+      this.animId = null;
+    }
+  }
+
+  dispose() {
+    this.stop();
+    if (this.model) {
+      this.scene.remove(this.model);
+      this.model.traverse(function(child) {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+      });
+    }
+    this.controls.dispose();
+    this.renderer.dispose();
+  }
+}
+
 // ─── State ────────────────────────────────────────────────────────────────────
 var allAssets = [];
 var activeFilter = 'all';
@@ -493,6 +724,8 @@ var modelPreviewBlob = null;
 var specialPreviewBlob = null;
 var skinRenderer = null;
 var modelRenderer = null;
+var interactiveViewer = null;
+var currentViewerAsset = null;
 
 if (hasWebGL) {
   skinRenderer = new PreviewRenderer(document.getElementById('skinCanvas'));
@@ -613,11 +846,25 @@ function renderGrid() {
   }).join('');
 }
 
-// Use event delegation for delete buttons
+// Use event delegation for delete buttons + card click → viewer
 document.getElementById('grid').addEventListener('click', function(e) {
+  // Delete handler
   var btn = e.target.closest('.card-delete');
   if (btn && btn.dataset.file) {
     deleteAsset(btn.dataset.file);
+    return;
+  }
+  // Card click → open viewer for skin/model
+  var card = e.target.closest('.card');
+  if (card) {
+    var delBtn = card.querySelector('.card-delete');
+    if (delBtn && delBtn.dataset.file) {
+      var file = delBtn.dataset.file;
+      var asset = allAssets.find(function(a) { return a.file === file; });
+      if (asset && (asset.type === 'skin' || asset.type === 'model')) {
+        openViewer(asset);
+      }
+    }
   }
 });
 
@@ -675,6 +922,8 @@ document.getElementById('skinFile').addEventListener('change', async function() 
     loading.classList.remove('visible');
   }
   document.getElementById('skinUploadBtn').disabled = false;
+  // Show "View in 3D" link
+  if (hasWebGL) document.getElementById('skinView3d').style.display = 'block';
 });
 
 // Re-render skin preview when weapon changes
@@ -718,6 +967,8 @@ async function tryModelPreview() {
 
   if (!modelInput.files.length || !textureInput.files.length) return;
   document.getElementById('modelUploadBtn').disabled = false;
+  // Show "View in 3D" link
+  if (hasWebGL) document.getElementById('modelView3d').style.display = 'block';
 
   if (hasWebGL) {
     var loading = document.getElementById('modelLoading');
@@ -859,6 +1110,210 @@ dropZone.addEventListener('drop', async function(e) {
   loadAssets();
 });
 
+// ─── Interactive Viewer Functions ──────────────────────────────────────────────
+function openViewer(asset) {
+  if (!hasWebGL) return;
+  currentViewerAsset = asset;
+
+  var modal = document.getElementById('viewerModal');
+  modal.classList.add('visible');
+  document.getElementById('viewerTitle').textContent = asset.name || '3D Viewer';
+
+  // Create viewer if not exists
+  if (!interactiveViewer) {
+    interactiveViewer = new InteractiveViewer(document.getElementById('viewerCanvas'));
+  }
+
+  // Resize canvas to modal dimensions
+  var content = modal.querySelector('.viewer-content');
+  var w = Math.min(window.innerWidth * 0.85, 900);
+  var h = Math.min(window.innerHeight * 0.7, 600);
+  interactiveViewer.resize(w, h);
+
+  // Determine GLB + texture sources
+  var glb, tex;
+  if (asset.type === 'skin') {
+    glb = '/file/DefaultModels/' + asset.weapon + '.glb';
+    tex = '/file/' + asset.file;
+  } else if (asset.type === 'model') {
+    glb = '/file/' + asset.file;
+    tex = asset.texture ? '/file/' + asset.texture : null;
+  }
+
+  document.getElementById('genPreviewBtn').disabled = false;
+  interactiveViewer.load(glb, tex).catch(function(e) {
+    console.error('Viewer load failed:', e);
+    document.getElementById('viewerInfo').textContent = 'Failed to load model';
+  });
+}
+
+function closeViewer() {
+  if (interactiveViewer) interactiveViewer.stop();
+  document.getElementById('viewerModal').classList.remove('visible');
+  currentViewerAsset = null;
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.getElementById('viewerModal').classList.contains('visible')) {
+    closeViewer();
+  }
+});
+
+// Close modal on backdrop click
+document.getElementById('viewerModal').addEventListener('click', function(e) {
+  if (e.target === this) closeViewer();
+});
+
+async function generatePreview() {
+  if (!interactiveViewer || !currentViewerAsset) return;
+  var btn = document.getElementById('genPreviewBtn');
+  var info = document.getElementById('viewerInfo');
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  info.textContent = 'Capturing preview from standard angle...';
+
+  try {
+    var blob = await interactiveViewer.capturePreview();
+
+    // Determine name for save
+    var asset = currentViewerAsset;
+    var name = asset.file.split('/').pop();
+    name = name.replace(/\.[^.]+$/, '').toLowerCase();
+
+    var form = new FormData();
+    form.append('type', asset.type);
+    form.append('weapon', asset.weapon || '');
+    form.append('name', name);
+    form.append('preview', blob, 'preview.webp');
+
+    var data = await fetch('/api/save-preview', { method: 'POST', body: form }).then(function(r) { return r.json(); });
+    if (data.success) {
+      info.textContent = 'Preview saved!';
+      showStatus('Preview generated for ' + asset.name, 'success');
+
+      // If this was called from upload flow, store the blob
+      if (asset._uploadSkin) skinPreviewBlob = blob;
+      if (asset._uploadModel) modelPreviewBlob = blob;
+
+      loadAssets();
+    } else {
+      info.textContent = 'Failed: ' + (data.error || 'unknown');
+    }
+  } catch(e) {
+    console.error('Preview generation failed:', e);
+    info.textContent = 'Error generating preview';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Generate Preview';
+}
+
+async function generateAllPreviews() {
+  if (!hasWebGL) return showStatus('WebGL not available', 'error');
+  var skins = allAssets.filter(function(a) { return a.type === 'skin'; });
+  var models = allAssets.filter(function(a) { return a.type === 'model'; });
+  var total = skins.length + models.length;
+  if (total === 0) return showStatus('No skins or models to generate previews for', 'error');
+  if (!confirm('Generate previews for ' + skins.length + ' skins and ' + models.length + ' models?')) return;
+
+  // Create temporary offscreen viewer
+  var tempCanvas = document.createElement('canvas');
+  tempCanvas.width = 800;
+  tempCanvas.height = 600;
+  var tempViewer = new InteractiveViewer(tempCanvas);
+  var done = 0;
+
+  showStatus('Generating previews... 0/' + total, 'success');
+
+  try {
+    // Process skins
+    for (var i = 0; i < skins.length; i++) {
+      var skin = skins[i];
+      var glb = '/file/DefaultModels/' + skin.weapon + '.glb';
+      var tex = '/file/' + skin.file;
+      await tempViewer.load(glb, tex);
+      var blob = await tempViewer.capturePreview();
+      tempViewer.stop();
+
+      var name = skin.file.split('/').pop().replace(/\.[^.]+$/, '').toLowerCase();
+      var form = new FormData();
+      form.append('type', 'skin');
+      form.append('weapon', skin.weapon);
+      form.append('name', name);
+      form.append('preview', blob, 'preview.webp');
+      await fetch('/api/save-preview', { method: 'POST', body: form });
+
+      done++;
+      showStatus('Generating previews... ' + done + '/' + total, 'success');
+    }
+
+    // Process models
+    for (var j = 0; j < models.length; j++) {
+      var model = models[j];
+      var mGlb = '/file/' + model.file;
+      var mTex = model.texture ? '/file/' + model.texture : null;
+      await tempViewer.load(mGlb, mTex);
+      var mBlob = await tempViewer.capturePreview();
+      tempViewer.stop();
+
+      var mName = model.file.split('/').pop().replace(/\.[^.]+$/, '').toLowerCase();
+      var mForm = new FormData();
+      mForm.append('type', 'model');
+      mForm.append('weapon', model.weapon);
+      mForm.append('name', mName);
+      mForm.append('preview', mBlob, 'preview.webp');
+      await fetch('/api/save-preview', { method: 'POST', body: mForm });
+
+      done++;
+      showStatus('Generating previews... ' + done + '/' + total, 'success');
+    }
+
+    tempViewer.dispose();
+    showStatus('All ' + total + ' previews generated!', 'success');
+    loadAssets();
+  } catch(e) {
+    console.error('Batch preview failed:', e);
+    tempViewer.dispose();
+    showStatus('Preview generation failed at ' + done + '/' + total + ': ' + e.message, 'error');
+  }
+}
+
+// ─── Upload Tab 3D View Functions ───────────────────────────────────────────
+function viewUploadedSkin3D() {
+  var fileInput = document.getElementById('skinFile');
+  if (!fileInput.files.length || !hasWebGL) return;
+  var weapon = document.getElementById('skinWeapon').value;
+  openViewer({
+    type: 'skin',
+    weapon: weapon,
+    name: fileInput.files[0].name,
+    file: 'DefaultModels/' + weapon + '.glb',
+    _uploadSkin: true,
+    _skinTexture: fileInput.files[0]
+  });
+  // Override: load with local file instead of URL
+  var glb = '/file/DefaultModels/' + weapon + '.glb';
+  interactiveViewer.load(glb, fileInput.files[0]);
+}
+
+function viewUploadedModel3D() {
+  var modelInput = document.getElementById('modelFile');
+  var textureInput = document.getElementById('modelTexture');
+  if (!modelInput.files.length || !hasWebGL) return;
+  openViewer({
+    type: 'model',
+    weapon: document.getElementById('modelWeapon').value,
+    name: modelInput.files[0].name,
+    file: modelInput.files[0].name,
+    _uploadModel: true
+  });
+  // Override: load with local ArrayBuffer + file
+  modelInput.files[0].arrayBuffer().then(function(buf) {
+    var tex = textureInput.files.length ? textureInput.files[0] : null;
+    interactiveViewer.load(buf, tex);
+  });
+}
+
 // ─── Expose to window for onclick handlers ───────────────────────────────────
 window.toggleUpload = toggleUpload;
 window.regenerateManifest = regenerateManifest;
@@ -869,6 +1324,11 @@ window.switchTab = switchTab;
 window.uploadSkin = uploadSkin;
 window.uploadModel = uploadModel;
 window.uploadSpecial = uploadSpecial;
+window.closeViewer = closeViewer;
+window.generatePreview = generatePreview;
+window.generateAllPreviews = generateAllPreviews;
+window.viewUploadedSkin3D = viewUploadedSkin3D;
+window.viewUploadedModel3D = viewUploadedModel3D;
 
 // Init
 loadAssets();
@@ -1018,6 +1478,43 @@ const server = http.createServer(async (req, res) => {
 
 			regenerateManifestFile();
 			return json(res, { success: true, file: modelFolder + '/' + modelPart.filename });
+		}
+
+		// ── API: Save Preview (for existing or uploaded assets) ──
+		if (pathname === '/api/save-preview' && req.method === 'POST') {
+			const contentType = req.headers['content-type'] || '';
+			const boundaryMatch = contentType.match(/boundary=(.+)/);
+			if (!boundaryMatch) return json(res, { success: false, error: 'No boundary' }, 400);
+
+			const body = await parseBody(req);
+			const parts = parseMultipart(body, boundaryMatch[1]);
+			const typePart = parts.find(p => p.name === 'type');
+			const weaponPart = parts.find(p => p.name === 'weapon');
+			const namePart = parts.find(p => p.name === 'name');
+			const previewPart = parts.find(p => p.name === 'preview');
+
+			if (!typePart || !namePart || !previewPart) return json(res, { success: false, error: 'Missing type, name, or preview' }, 400);
+
+			const assetType = typePart.data.toString().trim();
+			const weapon = weaponPart ? weaponPart.data.toString().trim() : '';
+			const name = namePart.data.toString().trim();
+
+			// Determine preview filename
+			let previewName;
+			if (assetType === 'skin') {
+				previewName = 'skin-' + weapon + '-' + name + '.webp';
+			} else if (assetType === 'model') {
+				previewName = 'model-' + weapon + '-' + name + '.webp';
+			} else {
+				return json(res, { success: false, error: 'Invalid type: ' + assetType }, 400);
+			}
+
+			const previewDir = path.join(ROOT, PREVIEW_FOLDER);
+			if (!fs.existsSync(previewDir)) fs.mkdirSync(previewDir, { recursive: true });
+			fs.writeFileSync(path.join(previewDir, previewName), previewPart.data);
+
+			regenerateManifestFile();
+			return json(res, { success: true, preview: PREVIEW_FOLDER + '/' + previewName });
 		}
 
 		// ── API: Upload Special (original + compressed preview) ──

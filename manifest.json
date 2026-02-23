@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updated": "2026-02-23T16:29:47.783Z",
+  "updated": "2026-02-23T18:13:25.154Z",
   "previewBaseUrl": "https://raw.githubusercontent.com/iydebu/haze-client-assets/main/",
   "assets": [
     {
@@ -9,7 +9,7 @@
       "name": "Blood",
       "description": "Blood special skin for all weapons",
       "file": "Special/Blood.png",
-      "preview": "Previews/special-blood.webp",
+      "preview": "Special/Blood.png",
       "size": 34682,
       "required": false
     },
@@ -31,6 +31,42 @@
       "file": "Special/Iydebu.png",
       "preview": "Special/Iydebu.png",
       "size": 10206811,
+      "required": false
+    },
+    {
+      "id": "model-ar-kurunamiar",
+      "type": "model",
+      "weapon": "ar",
+      "name": "KurunamiAR",
+      "description": "Custom KurunamiAR weapon model",
+      "file": "Models/AR/KurunamiAR.glb",
+      "texture": "Models/AR/KurunamiAR_tex.png",
+      "preview": "Previews/model-ar-kurunamiar.webp",
+      "size": 471428,
+      "required": false
+    },
+    {
+      "id": "model-awp-kurunamiawp",
+      "type": "model",
+      "weapon": "awp",
+      "name": "KurunamiAwp",
+      "description": "Custom KurunamiAwp weapon model",
+      "file": "Models/AWP/KurunamiAwp.glb",
+      "texture": "Models/AWP/KurunamiAwp_tex.png",
+      "preview": "Previews/model-awp-kurunamiawp.webp",
+      "size": 311576,
+      "required": false
+    },
+    {
+      "id": "model-smg-kurunamismg",
+      "type": "model",
+      "weapon": "smg",
+      "name": "KurunamiSMG",
+      "description": "Custom KurunamiSMG weapon model",
+      "file": "Models/SMG/KurunamiSMG.glb",
+      "texture": "Models/SMG/KurunamiSMG_tex.png",
+      "preview": "Previews/model-smg-kurunamismg.webp",
+      "size": 409368,
       "required": false
     }
   ]
