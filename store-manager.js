@@ -47,6 +47,17 @@ function writeManifest(manifest) {
 	fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n', 'utf-8');
 }
 
+function regenerateManifestFile() {
+	const items = scanAll();
+	const manifest = readManifest();
+	manifest.version = 3;
+	manifest.updated = new Date().toISOString();
+	manifest.previewBaseUrl = manifest.previewBaseUrl || 'https://raw.githubusercontent.com/iydebu/haze-client-assets/main/';
+	manifest.assets = items;
+	writeManifest(manifest);
+	return items;
+}
+
 function scanFolder(folderRelative, extensions) {
 	const abs = path.join(ROOT, folderRelative);
 	if (!fs.existsSync(abs)) return [];
@@ -897,13 +908,7 @@ const server = http.createServer(async (req, res) => {
 
 		// ── API: Regenerate manifest ──
 		if (pathname === '/api/regenerate' && req.method === 'POST') {
-			const items = scanAll();
-			const manifest = readManifest();
-			manifest.version = 3;
-			manifest.updated = new Date().toISOString();
-			manifest.previewBaseUrl = manifest.previewBaseUrl || 'https://raw.githubusercontent.com/iydebu/haze-client-assets/main/';
-			manifest.assets = items;
-			writeManifest(manifest);
+			const items = regenerateManifestFile();
 			return json(res, { success: true, count: items.length });
 		}
 
@@ -964,6 +969,7 @@ const server = http.createServer(async (req, res) => {
 				);
 			}
 
+			regenerateManifestFile();
 			return json(res, { success: true, file: skinFolder + '/' + filePart.filename });
 		}
 
@@ -1010,6 +1016,7 @@ const server = http.createServer(async (req, res) => {
 				);
 			}
 
+			regenerateManifestFile();
 			return json(res, { success: true, file: modelFolder + '/' + modelPart.filename });
 		}
 
@@ -1042,6 +1049,7 @@ const server = http.createServer(async (req, res) => {
 				);
 			}
 
+			regenerateManifestFile();
 			return json(res, { success: true, file: SPECIAL_FOLDER + '/' + filePart.filename });
 		}
 
@@ -1094,6 +1102,7 @@ const server = http.createServer(async (req, res) => {
 			}
 
 			fs.unlinkSync(absPath);
+			regenerateManifestFile();
 			return json(res, { success: true });
 		}
 
