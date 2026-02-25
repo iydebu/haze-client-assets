@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updated": "2026-02-25T13:07:53.036Z",
+  "updated": "2026-02-25T14:28:18.684Z",
   "previewBaseUrl": "https://raw.githubusercontent.com/iydebu/haze-client-assets/main/",
   "assets": [
     {
@@ -12,6 +12,42 @@
       "file": "AR/Ironman.png",
       "preview": "Previews/skin-ar-ironman.webp",
       "size": 8207719,
+      "required": false,
+      "credit": "Aagstya"
+    },
+    {
+      "id": "skin-awp-rever",
+      "type": "skin",
+      "weapon": "awp",
+      "name": "Rever AWP",
+      "description": "Rever-themed AWP skin",
+      "file": "AWP/Rever.png",
+      "preview": "Previews/skin-awp-rever.webp",
+      "size": 1766572,
+      "required": false,
+      "credit": "Dev"
+    },
+    {
+      "id": "skin-shotgun-boys",
+      "type": "skin",
+      "weapon": "shotgun",
+      "name": "Boys SHOTGUN",
+      "description": "Boys-themed SHOTGUN skin",
+      "file": "Shotgun/Boys.png",
+      "preview": "Previews/skin-shotgun-boys.webp",
+      "size": 7013421,
+      "required": false,
+      "credit": "Aagstya"
+    },
+    {
+      "id": "skin-smg-boys",
+      "type": "skin",
+      "weapon": "smg",
+      "name": "Boys SMG",
+      "description": "Boys-themed SMG skin",
+      "file": "SMG/Boys.png",
+      "preview": "Previews/skin-smg-boys.webp",
+      "size": 7829135,
       "required": false,
       "credit": "Aagstya"
     },
