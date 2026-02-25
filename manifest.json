@@ -1,8 +1,20 @@
 {
   "version": 3,
-  "updated": "2026-02-23T18:13:25.154Z",
+  "updated": "2026-02-25T13:07:53.036Z",
   "previewBaseUrl": "https://raw.githubusercontent.com/iydebu/haze-client-assets/main/",
   "assets": [
+    {
+      "id": "skin-ar-ironman",
+      "type": "skin",
+      "weapon": "ar",
+      "name": "Ironman AR",
+      "description": "Ironman-themed AR skin",
+      "file": "AR/Ironman.png",
+      "preview": "Previews/skin-ar-ironman.webp",
+      "size": 8207719,
+      "required": false,
+      "credit": "Aagstya"
+    },
     {
       "id": "special-blood",
       "type": "special",
@@ -11,7 +23,8 @@
       "file": "Special/Blood.png",
       "preview": "Special/Blood.png",
       "size": 34682,
-      "required": false
+      "required": false,
+      "credit": "Unknown"
     },
     {
       "id": "special-dragon",
@@ -21,7 +34,8 @@
       "file": "Special/Dragon.jpg",
       "preview": "Special/Dragon.jpg",
       "size": 1504424,
-      "required": false
+      "required": false,
+      "credit": "Unknown"
     },
     {
       "id": "special-iydebu",
@@ -31,7 +45,8 @@
       "file": "Special/Iydebu.png",
       "preview": "Special/Iydebu.png",
       "size": 10206811,
-      "required": false
+      "required": false,
+      "credit": "Unknown"
     },
     {
       "id": "model-ar-kurunamiar",
@@ -43,7 +58,8 @@
       "texture": "Models/AR/KurunamiAR_tex.png",
       "preview": "Previews/model-ar-kurunamiar.webp",
       "size": 471428,
-      "required": false
+      "required": false,
+      "credit": "Unknown"
     },
     {
       "id": "model-awp-kurunamiawp",
@@ -55,7 +71,8 @@
       "texture": "Models/AWP/KurunamiAwp_tex.png",
       "preview": "Previews/model-awp-kurunamiawp.webp",
       "size": 311576,
-      "required": false
+      "required": false,
+      "credit": "Unknown"
     },
     {
       "id": "model-smg-kurunamismg",
@@ -67,7 +84,8 @@
       "texture": "Models/SMG/KurunamiSMG_tex.png",
       "preview": "Previews/model-smg-kurunamismg.webp",
       "size": 409368,
-      "required": false
+      "required": false,
+      "credit": "Unknown"
     }
   ]
 }

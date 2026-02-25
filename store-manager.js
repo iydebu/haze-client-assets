@@ -47,8 +47,23 @@ function writeManifest(manifest) {
 	fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n', 'utf-8');
 }
 
+const CREDITS_PATH = path.join(ROOT, 'credits.json');
+
+function readCredits() {
+	try { return JSON.parse(fs.readFileSync(CREDITS_PATH, 'utf-8')); }
+	catch { return {}; }
+}
+
+function writeCredits(credits) {
+	fs.writeFileSync(CREDITS_PATH, JSON.stringify(credits, null, 2) + '\n', 'utf-8');
+}
+
 function regenerateManifestFile() {
 	const items = scanAll();
+	const credits = readCredits();
+	for (const item of items) {
+		item.credit = credits[item.id] || 'Unknown';
+	}
 	const manifest = readManifest();
 	manifest.version = 3;
 	manifest.updated = new Date().toISOString();
@@ -254,6 +269,12 @@ h1{color:#00ff88;margin-bottom:6px;font-size:24px}
 .card-type{background:rgba(0,255,136,0.1);color:#00ff88;padding:2px 8px;border-radius:10px;font-size:10px;text-transform:uppercase}
 .card-type.model{background:rgba(138,107,255,0.1);color:#8a6bff}
 .card-type.special{background:rgba(255,200,50,0.1);color:#ffc832}
+.card-credit{font-size:10px;color:rgba(0,255,136,0.6);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.card-credit:hover{color:rgba(0,255,136,0.9)}
+.card-credit svg{width:10px;height:10px;vertical-align:-1px;margin-right:3px;fill:rgba(0,255,136,0.5)}
+.card-credit-text{cursor:pointer}
+.credit-input{background:#080b14;border:1px solid rgba(255,255,255,0.1);color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:11px;width:120px}
+.credit-input::placeholder{color:rgba(255,255,255,0.2)}
 .card-delete{position:absolute;top:6px;right:6px;background:rgba(255,50,50,0.8);border:none;color:#fff;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:12px;display:none;align-items:center;justify-content:center;line-height:1}
 .card:hover .card-delete{display:flex}
 .status{padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;display:none}
@@ -340,6 +361,8 @@ h1{color:#00ff88;margin-bottom:6px;font-size:24px}
       </select>
       <label>Texture:</label>
       <input type="file" id="skinFile" accept=".png,.jpg,.jpeg,.webp">
+      <label>Creator:</label>
+      <input type="text" id="skinCreator" class="credit-input" placeholder="Creator name">
       <button class="upload-btn" id="skinUploadBtn" onclick="uploadSkin()" disabled>Upload Skin</button>
     </div>
     <div class="preview-area">
@@ -363,6 +386,8 @@ h1{color:#00ff88;margin-bottom:6px;font-size:24px}
       <input type="file" id="modelFile" accept=".glb">
       <label>Texture:</label>
       <input type="file" id="modelTexture" accept=".png,.jpg,.jpeg,.webp">
+      <label>Creator:</label>
+      <input type="text" id="modelCreator" class="credit-input" placeholder="Creator name">
       <button class="upload-btn" id="modelUploadBtn" onclick="uploadModel()" disabled>Upload Model</button>
     </div>
     <div class="preview-area">
@@ -377,6 +402,8 @@ h1{color:#00ff88;margin-bottom:6px;font-size:24px}
     <div class="upload-row">
       <label>Image:</label>
       <input type="file" id="specialFile" accept=".png,.jpg,.jpeg,.webp">
+      <label>Creator:</label>
+      <input type="text" id="specialCreator" class="credit-input" placeholder="Creator name">
       <button class="upload-btn" id="specialUploadBtn" onclick="uploadSpecial()" disabled>Upload Special</button>
     </div>
     <div class="preview-area">
@@ -841,6 +868,7 @@ function renderGrid() {
           '<span class="card-type ' + typeClass + '">' + a.type + (a.weapon ? ' / ' + a.weapon : '') + '</span>' +
           '<span>' + formatSize(a.size) + '</span>' +
         '</div>' +
+        '<div class="card-credit" data-id="' + a.id + '"><svg viewBox="0 0 16 16"><path d="M8 8a3 3 0 100-6 3 3 0 000 6zm-5 8a5 5 0 0110 0H3z"/></svg><span class="card-credit-text">' + (a.credit || 'Unknown') + '</span></div>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -852,6 +880,32 @@ document.getElementById('grid').addEventListener('click', function(e) {
   var btn = e.target.closest('.card-delete');
   if (btn && btn.dataset.file) {
     deleteAsset(btn.dataset.file);
+    return;
+  }
+  // Credit inline edit — click on credit line to edit creator name
+  var creditEl = e.target.closest('.card-credit');
+  if (creditEl && creditEl.dataset.id) {
+    var textEl = creditEl.querySelector('.card-credit-text');
+    if (!textEl) return;
+    var current = textEl.textContent;
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'credit-input';
+    input.value = current === 'Unknown' ? '' : current;
+    input.placeholder = 'Creator name';
+    input.style.width = '80px';
+    textEl.replaceWith(input);
+    input.focus();
+    function saveCredit() {
+      var val = input.value.trim() || 'Unknown';
+      fetch('/api/set-credit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: creditEl.dataset.id, credit: val })
+      }).then(function() { loadAssets(); });
+    }
+    input.addEventListener('blur', saveCredit);
+    input.addEventListener('keydown', function(ev) { if (ev.key === 'Enter') { input.blur(); } });
     return;
   }
   // Card click → open viewer for skin/model
@@ -943,11 +997,14 @@ async function uploadSkin() {
   form.append('weapon', weapon);
   form.append('file', fileInput.files[0]);
   if (skinPreviewBlob) form.append('preview', skinPreviewBlob, 'preview.webp');
+  var creator = document.getElementById('skinCreator').value.trim();
+  if (creator) form.append('credit', creator);
 
   var data = await fetch('/api/upload-skin', { method: 'POST', body: form }).then(function(r) { return r.json(); });
   if (data.success) {
     showStatus('Skin uploaded: ' + data.file, 'success');
     fileInput.value = '';
+    document.getElementById('skinCreator').value = '';
     skinPreviewBlob = null;
     document.getElementById('skinUploadBtn').disabled = true;
     var ctx = document.getElementById('skinCanvas').getContext('2d');
@@ -999,12 +1056,15 @@ async function uploadModel() {
   form.append('model', modelInput.files[0]);
   form.append('texture', textureInput.files[0]);
   if (modelPreviewBlob) form.append('preview', modelPreviewBlob, 'preview.webp');
+  var creator = document.getElementById('modelCreator').value.trim();
+  if (creator) form.append('credit', creator);
 
   var data = await fetch('/api/upload-model', { method: 'POST', body: form }).then(function(r) { return r.json(); });
   if (data.success) {
     showStatus('Model uploaded: ' + data.file, 'success');
     modelInput.value = '';
     textureInput.value = '';
+    document.getElementById('modelCreator').value = '';
     modelPreviewBlob = null;
     document.getElementById('modelUploadBtn').disabled = true;
     var ctx = document.getElementById('modelCanvas').getContext('2d');
@@ -1061,11 +1121,14 @@ async function uploadSpecial() {
   var form = new FormData();
   form.append('file', fileInput.files[0]);
   if (specialPreviewBlob) form.append('preview', specialPreviewBlob, 'preview.webp');
+  var creator = document.getElementById('specialCreator').value.trim();
+  if (creator) form.append('credit', creator);
 
   var data = await fetch('/api/upload-special', { method: 'POST', body: form }).then(function(r) { return r.json(); });
   if (data.success) {
     showStatus('Special uploaded: ' + data.file, 'success');
     fileInput.value = '';
+    document.getElementById('specialCreator').value = '';
     specialPreviewBlob = null;
     document.getElementById('specialUploadBtn').disabled = true;
     var ctx = document.getElementById('specialCanvas').getContext('2d');
@@ -1372,6 +1435,23 @@ const server = http.createServer(async (req, res) => {
 			return json(res, { success: true, count: items.length });
 		}
 
+		// ── API: Set credit for an asset ──
+		if (pathname === '/api/set-credit' && req.method === 'POST') {
+			const body = await parseBody(req);
+			let data;
+			try { data = JSON.parse(body.toString()); } catch { return json(res, { success: false, error: 'Invalid JSON' }, 400); }
+			if (!data.id) return json(res, { success: false, error: 'Missing asset id' }, 400);
+			const credits = readCredits();
+			if (data.credit && data.credit !== 'Unknown') {
+				credits[data.id] = data.credit;
+			} else {
+				delete credits[data.id];
+			}
+			writeCredits(credits);
+			regenerateManifestFile();
+			return json(res, { success: true });
+		}
+
 		// ── API: Upload (legacy — simple file upload) ──
 		if (pathname === '/api/upload' && req.method === 'POST') {
 			const contentType = req.headers['content-type'] || '';
@@ -1429,6 +1509,17 @@ const server = http.createServer(async (req, res) => {
 				);
 			}
 
+			// Save credit
+			const creditPart = parts.find(p => p.name === 'credit');
+			if (creditPart) {
+				const creditVal = creditPart.data.toString().trim();
+				if (creditVal) {
+					const credits = readCredits();
+					credits['skin-' + weapon + '-' + skinName.toLowerCase()] = creditVal;
+					writeCredits(credits);
+				}
+			}
+
 			regenerateManifestFile();
 			return json(res, { success: true, file: skinFolder + '/' + filePart.filename });
 		}
@@ -1474,6 +1565,17 @@ const server = http.createServer(async (req, res) => {
 					path.join(previewDir, 'model-' + weapon + '-' + modelName.toLowerCase() + '.webp'),
 					previewPart.data
 				);
+			}
+
+			// Save credit
+			const creditPart = parts.find(p => p.name === 'credit');
+			if (creditPart) {
+				const creditVal = creditPart.data.toString().trim();
+				if (creditVal) {
+					const credits = readCredits();
+					credits['model-' + weapon + '-' + modelName.toLowerCase()] = creditVal;
+					writeCredits(credits);
+				}
 			}
 
 			regenerateManifestFile();
@@ -1546,6 +1648,17 @@ const server = http.createServer(async (req, res) => {
 				);
 			}
 
+			// Save credit
+			const creditPart = parts.find(p => p.name === 'credit');
+			if (creditPart) {
+				const creditVal = creditPart.data.toString().trim();
+				if (creditVal) {
+					const credits = readCredits();
+					credits['special-' + specialName.toLowerCase()] = creditVal;
+					writeCredits(credits);
+				}
+			}
+
 			regenerateManifestFile();
 			return json(res, { success: true, file: SPECIAL_FOLDER + '/' + filePart.filename });
 		}
@@ -1596,6 +1709,15 @@ const server = http.createServer(async (req, res) => {
 			if (previewName) {
 				const previewPath = path.join(ROOT, PREVIEW_FOLDER, previewName);
 				if (fs.existsSync(previewPath)) fs.unlinkSync(previewPath);
+			}
+
+			// Remove credit entry
+			const manifest = readManifest();
+			const asset = manifest.assets.find(a => a.file === file);
+			if (asset) {
+				const credits = readCredits();
+				delete credits[asset.id];
+				writeCredits(credits);
 			}
 
 			fs.unlinkSync(absPath);
